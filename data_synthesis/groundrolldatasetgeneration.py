@@ -13,8 +13,8 @@ def ground_roll_syn(num_traces=100,
                     distance_degradation=0.92,
                     win_scale=4,
                     duration_ratio=0.04,
-                    save_path='./syn_data/sample_groundroll.npy'
-                    ):
+                    save_path='./syn_data/sample_groundroll.npy',
+                    verbose=False):
     """
     args:
         num_traces: number of seismic traces (single side w.r.t source point)
@@ -29,6 +29,7 @@ def ground_roll_syn(num_traces=100,
         win_scale: controls the smooth edge of window, should be larger than (or equal to) 2, the larger the shearer
         duration_ratio: controls the sampling of chirp of ground-roll in each trace
         save_path: synthetic data save path, if parent folder not exist, it will be created
+        verbose: if True, displays the generated image
     """
     dp = dx / (velocity * dt)  # reciprocal of radial velocity
     gr_data = np.zeros((num_time_samples, num_traces))
@@ -45,7 +46,9 @@ def ground_roll_syn(num_traces=100,
         window = np.ones(len(t))
         n_edge = int(np.round(np.pi / (2 * dt * win_scale)))
         # make sure the window is sin-edge + plateau + sin-edge (symm) format
-        assert n_edge < len(t) / 2
+        if n_edge >= len(t) / 2:
+            print(f"Skipping trace_idx={trace_idx} due to invalid n_edge: {n_edge} >= {len(t) / 2}")
+            continue
         t1 = np.arange(0, n_edge * dt, dt)
         edge = np.sin(t1 * win_scale)
         window[:n_edge] = edge
@@ -64,8 +67,7 @@ def ground_roll_syn(num_traces=100,
         else:
             gr_data[t_offset: t_offset + len(t), trace_idx] = gr_w[:len(t)] * cur_deg
 
-    VERBOSE = True
-    if VERBOSE:
+    if verbose:
         plt.imshow(gr_data, aspect='auto')
         plt.show()
     
@@ -73,7 +75,6 @@ def ground_roll_syn(num_traces=100,
     dir_name = os.path.dirname(save_path)
     os.makedirs(dir_name, exist_ok=True)
     np.save(save_path, gr_data)
-
 
 if __name__ == "__main__":
     # Define ranges for parameters
@@ -122,29 +123,32 @@ if __name__ == "__main__":
                                                                     distance_degradation=distance_degradation,
                                                                     win_scale=win_scale,
                                                                     duration_ratio=duration_ratio,
-                                                                    save_path=save_path)
+                                                                    save_path=save_path,
+                                                                    verbose=False)
                                                     counter += 1
-                                                    if counter >= 1000:
+                                                    if counter >= 50000:
                                                         break
-                                            if counter >= 1000:
+                                                else:
+                                                    print(f"Skipping parameters due to invalid n_edge: {n_edge} >= {len(t) / 2}")
+                                            if counter >= 50000:
                                                 break
-                                        if counter >= 1000:
+                                        if counter >= 50000:
                                             break
-                                    if counter >= 1000:
+                                    if counter >= 50000:
                                         break
-                                if counter >= 1000:
+                                if counter >= 50000:
                                     break
-                            if counter >= 1000:
+                            if counter >= 50000:
                                 break
-                        if counter >= 1000:
+                        if counter >= 50000:
                             break
-                    if counter >= 1000:
+                    if counter >= 50000:
                         break
-                if counter >= 1000:
+                if counter >= 50000:
                     break
-            if counter >= 1000:
+            if counter >= 50000:
                 break
-        if counter >= 1000:
+        if counter >= 50000:
             break
 
     print(f"Generated {counter} images.")
